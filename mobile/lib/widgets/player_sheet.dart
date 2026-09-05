@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:just_audio_background/just_audio_background.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt_lib;
 import '../models/video.dart';
 
@@ -44,16 +43,8 @@ class _PlayerSheetState extends State<PlayerSheet> {
         var manifest = await _yt.videos.streamsClient.getManifest(track.videoId);
         var audioStream = manifest.audioOnly.withHighestBitrate();
 
-        final mediaItem = MediaItem(
-          id: track.videoId,
-          album: "Tubely Audio",
-          title: track.title,
-          artist: track.channelTitle,
-          artUri: Uri.parse(track.thumbnailUrl),
-        );
-
         await _playlist.add(
-          AudioSource.uri(audioStream.url, tag: mediaItem),
+          AudioSource.uri(audioStream.url),
         );
       }
 
