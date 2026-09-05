@@ -7,6 +7,7 @@ class YoutubeApiService {
   final yt_lib.YoutubeExplode _yt = yt_lib.YoutubeExplode();
 
   Future<List<yt_lib.Video>> searchVideos(String query) async {
+    // 1. Fetch search results from Render backend
     try {
       final response = await http.get(
         Uri.parse('${Config.baseUrl}/api/search?q=${Uri.encodeComponent(query)}'),
@@ -18,7 +19,7 @@ class YoutubeApiService {
 
         for (var item in data) {
           try {
-            final videoId = item['id'] ?? item['videoId'];
+            final String? videoId = item['id']?['videoId'] ?? item['id'] ?? item['videoId'];
             if (videoId != null) {
               final video = await _yt.videos.get(videoId);
               results.add(video);
@@ -29,10 +30,10 @@ class YoutubeApiService {
         if (results.isNotEmpty) return results;
       }
     } catch (e) {
-      // Backend error handling
+      // Backend fallback
     }
 
-    // Direct client fallback
+    // 2. Direct package fallback if Render response is empty
     try {
       final searchList = await _yt.search.getVideos(query);
       return searchList.toList();
