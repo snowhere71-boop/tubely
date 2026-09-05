@@ -1,18 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt_lib;
-import '../models/video.dart';
 
 class PlayerSheet extends StatefulWidget {
-  final Video video;
-  final List<Video> queue;
-  final int initialIndex;
+  final yt_lib.Video video;
 
   const PlayerSheet({
     super.key,
     required this.video,
-    this.queue = const [],
-    this.initialIndex = 0,
   });
 
   @override
@@ -22,7 +17,7 @@ class PlayerSheet extends StatefulWidget {
 class _PlayerSheetState extends State<PlayerSheet> {
   late AudioPlayer _audioPlayer;
   final yt_lib.YoutubeExplode _yt = yt_lib.YoutubeExplode();
-  
+
   bool _isLoading = true;
   bool _hasError = false;
 
@@ -35,7 +30,7 @@ class _PlayerSheetState extends State<PlayerSheet> {
 
   Future<void> _initAudio() async {
     try {
-      var manifest = await _yt.videos.streamsClient.getManifest(widget.video.videoId);
+      var manifest = await _yt.videos.streamsClient.getManifest(widget.video.id);
       var audioStream = manifest.audioOnly.withHighestBitrate();
 
       await _audioPlayer.setUrl(audioStream.url.toString());
@@ -69,7 +64,7 @@ class _PlayerSheetState extends State<PlayerSheet> {
           ClipRRect(
             borderRadius: BorderRadius.circular(16),
             child: Image.network(
-              widget.video.thumbnailUrl,
+              widget.video.thumbnails.highResUrl,
               height: 200,
               width: 200,
               fit: BoxFit.cover,
@@ -91,7 +86,7 @@ class _PlayerSheetState extends State<PlayerSheet> {
           ),
           const SizedBox(height: 6),
           Text(
-            widget.video.channelTitle,
+            widget.video.author,
             style: const TextStyle(color: Colors.grey, fontSize: 14),
           ),
           const SizedBox(height: 20),
