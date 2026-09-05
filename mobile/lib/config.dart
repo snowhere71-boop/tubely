@@ -6,4 +6,4 @@
 // special alias for your computer's localhost. It will NOT work on a real
 // phone, since a phone can't reach your computer's localhost over the
 // internet.
-const String apiBaseUrl = 'http://10.0.2.2:5000/api';
+const String apiBaseUrl = 'https://tubely-6816.onrender.com/api';
