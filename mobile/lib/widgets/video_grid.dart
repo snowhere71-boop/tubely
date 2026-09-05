@@ -42,7 +42,7 @@ class VideoGrid extends StatelessWidget {
             );
           },
           child: Column(
-            crossAxisAlignment: CrossAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: ClipRRect(
