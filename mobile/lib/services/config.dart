@@ -1,4 +1,4 @@
 class Config {
-  // Replace with your actual backend URL (e.g., https://your-backend.onrender.com)
-  static const String baseUrl = 'https://your-backend-url.com'; 
+  // Put your exact Render app URL here
+  static const String baseUrl = 'https://your-app-name.onrender.com'; 
 }
