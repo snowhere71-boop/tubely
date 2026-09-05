@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import '../models/video.dart';
 
 class PlayerSheet extends StatefulWidget {
@@ -17,18 +17,19 @@ class _PlayerSheetState extends State<PlayerSheet> {
   @override
   void initState() {
     super.initState();
-    _controller = YoutubePlayerController(
-      initialVideoId: widget.video.videoId,
-      flags: const YoutubePlayerFlags(
-        autoPlay: true,
-        mute: false,
+    _controller = YoutubePlayerController.fromVideoId(
+      videoId: widget.video.videoId,
+      autoPlay: true,
+      params: const YoutubePlayerParams(
+        showControls: true,
+        showFullscreenButton: true,
       ),
     );
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _controller.close();
     super.dispose();
   }
 
@@ -41,7 +42,7 @@ class _PlayerSheetState extends State<PlayerSheet> {
         children: [
           YoutubePlayer(
             controller: _controller,
-            showVideoProgressIndicator: true,
+            aspectRatio: 16 / 9,
           ),
           const SizedBox(height: 12),
           Text(
