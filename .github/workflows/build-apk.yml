@@ -29,6 +29,13 @@ jobs:
         run: |
           cd mobile
           flutter create --platforms=android .
+          
+      - name: Add Internet Permission
+        run: |
+          MANIFEST_PATH="mobile/android/app/src/main/AndroidManifest.xml"
+          if [ -f "$MANIFEST_PATH" ]; then
+            sed -i '/<manifest/a \    <uses-permission android:name="android.permission.INTERNET"/>' "$MANIFEST_PATH"
+          fi
 
       - name: Install dependencies
         run: |
