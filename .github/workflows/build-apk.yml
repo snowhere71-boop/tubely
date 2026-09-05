@@ -22,54 +22,12 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.x'
-          channel: 'stable'
+          flutter-version: '3.19.6'
 
       - name: Generate Android Project Files
         run: |
           cd mobile
           flutter create --platforms=android .
-
-      - name: Inject Background Permissions & Audio Service
-        run: |
-          MANIFEST_PATH="mobile/android/app/src/main/AndroidManifest.xml"
-          if [ -f "$MANIFEST_PATH" ]; then
-            # Add required network and background permissions
-            sed -i '/<manifest/a \    <uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="android.permission.WAKE_LOCK"/>\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>' "$MANIFEST_PATH"
-            
-            # Inject audio service and media button receiver inside <application>
-            python3 -c '
-          import xml.etree.ElementTree as ET
-          
-          # Register namespaces to prevent ns0 prefixes
-          ET.register_namespace("android", "http://schemas.android.com/apk/res/android")
-          
-          tree = ET.parse("mobile/android/app/src/main/AndroidManifest.xml")
-          root = tree.getroot()
-          app = root.find("application")
-          
-          android_ns = "{http://schemas.android.com/apk/res/android}"
-          
-          # Add AudioService
-          service = ET.SubElement(app, "service", {
-              f"{android_ns}name": "com.ryanheise.audioservice.AudioService",
-              f"{android_ns}foregroundServiceType": "mediaPlayback",
-              f"{android_ns}exported": "true"
-          })
-          s_intent = ET.SubElement(service, "intent-filter")
-          ET.SubElement(s_intent, "action", {f"{android_ns}name": "android.media.browse.MediaBrowserService"})
-          
-          # Add MediaButtonReceiver
-          receiver = ET.SubElement(app, "receiver", {
-              f"{android_ns}name": "com.ryanheise.audioservice.MediaButtonReceiver",
-              f"{android_ns}exported": "true"
-          })
-          r_intent = ET.SubElement(receiver, "intent-filter")
-          ET.SubElement(r_intent, "action", {f"{android_ns}name": "android.intent.action.MEDIA_BUTTON"})
-          
-          tree.write("mobile/android/app/src/main/AndroidManifest.xml", encoding="utf-8", xml_declaration=True)
-          '
-          fi
 
       - name: Install dependencies
         run: |
