@@ -30,13 +30,31 @@ class _PlayerSheetState extends State<PlayerSheet> {
 
   Future<void> _initAudio() async {
     try {
+      // 1. Fetch stream manifest from youtube_explode_dart
       var manifest = await _yt.videos.streamsClient.getManifest(widget.video.id);
-      var audioStream = manifest.audioOnly.withHighestBitrate();
+      
+      // 2. Safely pick the best available audio-only stream
+      var audioStreams = manifest.audioOnly;
+      if (audioStreams.isEmpty) {
+        throw Exception("No audio-only streams available");
+      }
+      
+      var audioStream = audioStreams.withHighestBitrate();
 
-      await _audioPlayer.setUrl(audioStream.url.toString());
+      // 3. Set audio URL with custom headers to prevent 403 Forbidden errors from YouTube CDN
+      await _audioPlayer.setAudioSource(
+        AudioSource.uri(
+          Uri.parse(audioStream.url.toString()),
+          headers: {
+            'User-Agent':
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          },
+        ),
+      );
+
       _audioPlayer.play();
     } catch (e) {
-      debugPrint("Audio Error: $e");
+      debugPrint("Audio Playback Error: $e");
       if (mounted) setState(() => _hasError = true);
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -93,7 +111,26 @@ class _PlayerSheetState extends State<PlayerSheet> {
           if (_isLoading)
             const CircularProgressIndicator(color: Colors.amber)
           else if (_hasError)
-            const Text("Failed to load audio source", style: TextStyle(color: Colors.redAccent))
+            Column(
+              children: [
+                const Text(
+                  "Failed to load audio source",
+                  style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                TextButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _isLoading = true;
+                      _hasError = false;
+                    });
+                    _initAudio();
+                  },
+                  icon: const Icon(Icons.refresh, color: Colors.amber),
+                  label: const Text("Retry", style: TextStyle(color: Colors.amber)),
+                ),
+              ],
+            )
           else
             StreamBuilder<PlayerState>(
               stream: _audioPlayer.playerStateStream,
