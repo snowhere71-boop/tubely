@@ -25,16 +25,44 @@ jobs:
           flutter-version: '3.x'
           channel: 'stable'
 
-      - name: Generate Android project files
+      - name: Generate Android Project Files
         run: |
           cd mobile
-          flutter create --platforms=android .
-          
-      - name: Add Internet Permission
+          flutter create --org com.auramusic --project-name aura_music .
+
+      - name: Configure AndroidManifest for Background Playback
         run: |
           MANIFEST_PATH="mobile/android/app/src/main/AndroidManifest.xml"
           if [ -f "$MANIFEST_PATH" ]; then
-            sed -i '/<manifest/a \    <uses-permission android:name="android.permission.INTERNET"/>' "$MANIFEST_PATH"
+            # Insert permissions
+            sed -i '/<manifest/a \    <uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="android.permission.WAKE_LOCK"/>\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>' "$MANIFEST_PATH"
+            
+            # Configure background service and activity
+            python3 -c '
+          import xml.etree.ElementTree as ET
+          tree = ET.parse("mobile/android/app/src/main/AndroidManifest.xml")
+          root = tree.getroot()
+          app = root.find("application")
+          
+          # Add background media service
+          service = ET.SubElement(app, "service", {
+              "android:name": "com.ryanheise.audioservice.AudioService",
+              "android:foregroundServiceType": "mediaPlayback",
+              "android:exported": "true"
+          })
+          intent = ET.SubElement(service, "intent-filter")
+          ET.SubElement(intent, "action", {"android:name": "android.media.browse.MediaBrowserService"})
+          
+          # Add media button receiver
+          receiver = ET.SubElement(app, "receiver", {
+              "android:name": "com.ryanheise.audioservice.MediaButtonReceiver",
+              "android:exported": "true"
+          })
+          r_intent = ET.SubElement(receiver, "intent-filter")
+          ET.SubElement(r_intent, "action", {"android:name": "android.intent.action.MEDIA_BUTTON"})
+          
+          tree.write("mobile/android/app/src/main/AndroidManifest.xml")
+          '
           fi
 
       - name: Install dependencies
@@ -50,5 +78,5 @@ jobs:
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: tubely-apk
+          name: aura-music-apk
           path: mobile/build/app/outputs/flutter-apk/app-release.apk
