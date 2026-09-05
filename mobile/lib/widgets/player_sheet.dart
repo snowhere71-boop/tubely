@@ -22,42 +22,27 @@ class PlayerSheet extends StatefulWidget {
 class _PlayerSheetState extends State<PlayerSheet> {
   late AudioPlayer _audioPlayer;
   final yt_lib.YoutubeExplode _yt = yt_lib.YoutubeExplode();
-  final ConcatenatingAudioSource _playlist = ConcatenatingAudioSource(children: []);
   
   bool _isLoading = true;
-  int _currentIndex = 0;
+  bool _hasError = false;
 
   @override
   void initState() {
     super.initState();
     _audioPlayer = AudioPlayer();
-    _currentIndex = widget.initialIndex;
-    _setupQueueAndPlay();
+    _initAudio();
   }
 
-  Future<void> _setupQueueAndPlay() async {
+  Future<void> _initAudio() async {
     try {
-      List<Video> trackQueue = widget.queue.isNotEmpty ? widget.queue : [widget.video];
+      var manifest = await _yt.videos.streamsClient.getManifest(widget.video.videoId);
+      var audioStream = manifest.audioOnly.withHighestBitrate();
 
-      for (var track in trackQueue) {
-        var manifest = await _yt.videos.streamsClient.getManifest(track.videoId);
-        var audioStream = manifest.audioOnly.withHighestBitrate();
-
-        await _playlist.add(
-          AudioSource.uri(audioStream.url),
-        );
-      }
-
-      await _audioPlayer.setAudioSource(_playlist, initialIndex: _currentIndex);
+      await _audioPlayer.setUrl(audioStream.url.toString());
       _audioPlayer.play();
-
-      _audioPlayer.currentIndexStream.listen((index) {
-        if (index != null && mounted) {
-          setState(() => _currentIndex = index);
-        }
-      });
     } catch (e) {
-      debugPrint("Error initializing playback: $e");
+      debugPrint("Audio Error: $e");
+      if (mounted) setState(() => _hasError = true);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -72,9 +57,6 @@ class _PlayerSheetState extends State<PlayerSheet> {
 
   @override
   Widget build(BuildContext context) {
-    List<Video> activeList = widget.queue.isNotEmpty ? widget.queue : [widget.video];
-    Video currentTrack = activeList.length > _currentIndex ? activeList[_currentIndex] : widget.video;
-
     return Container(
       padding: const EdgeInsets.all(24.0),
       decoration: const BoxDecoration(
@@ -84,27 +66,24 @@ class _PlayerSheetState extends State<PlayerSheet> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Album Art
           ClipRRect(
             borderRadius: BorderRadius.circular(16),
             child: Image.network(
-              currentTrack.thumbnailUrl,
-              height: 220,
-              width: 220,
+              widget.video.thumbnailUrl,
+              height: 200,
+              width: 200,
               fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Container(
-                height: 220,
-                width: 220,
+              errorBuilder: (_, __, ___) => Container(
+                height: 200,
+                width: 200,
                 color: Colors.grey[850],
                 child: const Icon(Icons.music_note, size: 80, color: Colors.white54),
               ),
             ),
           ),
           const SizedBox(height: 20),
-
-          // Metadata
           Text(
-            currentTrack.title,
+            widget.video.title,
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
@@ -112,52 +91,36 @@ class _PlayerSheetState extends State<PlayerSheet> {
           ),
           const SizedBox(height: 6),
           Text(
-            currentTrack.channelTitle,
+            widget.video.channelTitle,
             style: const TextStyle(color: Colors.grey, fontSize: 14),
           ),
           const SizedBox(height: 20),
-
-          // Controls
-          _isLoading
-              ? const CircularProgressIndicator(color: Colors.amber)
-              : Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    IconButton(
-                      iconSize: 40,
-                      icon: const Icon(Icons.skip_previous, color: Colors.white),
-                      onPressed: _audioPlayer.hasPrevious ? () => _audioPlayer.seekToPrevious() : null,
-                    ),
-                    const SizedBox(width: 16),
-                    StreamBuilder<PlayerState>(
-                      stream: _audioPlayer.playerStateStream,
-                      builder: (context, snapshot) {
-                        final playerState = snapshot.data;
-                        final playing = playerState?.playing ?? false;
-                        return IconButton(
-                          iconSize: 64,
-                          icon: Icon(
-                            playing ? Icons.pause_circle_filled : Icons.play_circle_fill,
-                            color: Colors.amber,
-                          ),
-                          onPressed: () {
-                            if (playing) {
-                              _audioPlayer.pause();
-                            } else {
-                              _audioPlayer.play();
-                            }
-                          },
-                        );
-                      },
-                    ),
-                    const SizedBox(width: 16),
-                    IconButton(
-                      iconSize: 40,
-                      icon: const Icon(Icons.skip_next, color: Colors.white),
-                      onPressed: _audioPlayer.hasNext ? () => _audioPlayer.seekToNext() : null,
-                    ),
-                  ],
-                ),
+          if (_isLoading)
+            const CircularProgressIndicator(color: Colors.amber)
+          else if (_hasError)
+            const Text("Failed to load audio source", style: TextStyle(color: Colors.redAccent))
+          else
+            StreamBuilder<PlayerState>(
+              stream: _audioPlayer.playerStateStream,
+              builder: (context, snapshot) {
+                final playerState = snapshot.data;
+                final playing = playerState?.playing ?? false;
+                return IconButton(
+                  iconSize: 64,
+                  icon: Icon(
+                    playing ? Icons.pause_circle_filled : Icons.play_circle_fill,
+                    color: Colors.amber,
+                  ),
+                  onPressed: () {
+                    if (playing) {
+                      _audioPlayer.pause();
+                    } else {
+                      _audioPlayer.play();
+                    }
+                  },
+                );
+              },
+            ),
         ],
       ),
     );
