@@ -1,18 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:just_audio_background/just_audio_background.dart';
-
-// Import your existing home screen file
 import 'screens/home_screen.dart';
 
-Future<void> main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  await JustAudioBackground.init(
-    androidNotificationChannelId: 'com.tubely.audio',
-    androidNotificationChannelName: 'Tubely Audio Playback',
-    androidNotificationOngoing: true,
-  );
-
   runApp(const MyApp());
 }
 
