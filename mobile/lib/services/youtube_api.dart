@@ -5,10 +5,17 @@ class YoutubeApiService {
 
   Future<List<yt_lib.Video>> searchVideos(String query) async {
     try {
-      final searchResult = await _yt.search.search(query);
-      return searchResult.toList();
+      // Query YouTube search client directly
+      final searchList = await _yt.search.getVideos(query);
+      return searchList.toList();
     } catch (e) {
-      return [];
+      // Fallback search mechanism if getVideos encounters client blocks
+      try {
+        final searchList = await _yt.search.search(query);
+        return searchList.toList();
+      } catch (innerError) {
+        return [];
+      }
     }
   }
 
