@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
-import 'package:youtube_explode_dart/youtube_explode_dart.dart';
+import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt_lib;
 import '../models/video.dart';
 
 class PlayerSheet extends StatefulWidget {
@@ -22,7 +22,7 @@ class PlayerSheet extends StatefulWidget {
 
 class _PlayerSheetState extends State<PlayerSheet> {
   late AudioPlayer _audioPlayer;
-  final YoutubeExplode _yt = YoutubeExplode();
+  final yt_lib.YoutubeExplode _yt = yt_lib.YoutubeExplode();
   final ConcatenatingAudioSource _playlist = ConcatenatingAudioSource(children: []);
   
   bool _isLoading = true;
@@ -46,7 +46,7 @@ class _PlayerSheetState extends State<PlayerSheet> {
 
         final mediaItem = MediaItem(
           id: track.videoId,
-          album: "Aura Music Stream",
+          album: "Tubely Audio",
           title: track.title,
           artist: track.channelTitle,
           artUri: Uri.parse(track.thumbnailUrl),
@@ -66,7 +66,7 @@ class _PlayerSheetState extends State<PlayerSheet> {
         }
       });
     } catch (e) {
-      debugPrint("Error initializing playback queue: $e");
+      debugPrint("Error initializing playback: $e");
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -82,7 +82,7 @@ class _PlayerSheetState extends State<PlayerSheet> {
   @override
   Widget build(BuildContext context) {
     List<Video> activeList = widget.queue.isNotEmpty ? widget.queue : [widget.video];
-    Video currentTrack = activeList[_currentIndex];
+    Video currentTrack = activeList.length > _currentIndex ? activeList[_currentIndex] : widget.video;
 
     return Container(
       padding: const EdgeInsets.all(24.0),
@@ -93,23 +93,30 @@ class _PlayerSheetState extends State<PlayerSheet> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // High-Res Album Art
+          // Album Art
           ClipRRect(
             borderRadius: BorderRadius.circular(16),
             child: Image.network(
               currentTrack.thumbnailUrl,
-              height: 240,
-              width: 240,
+              height: 220,
+              width: 220,
               fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Container(
+                height: 220,
+                width: 220,
+                color: Colors.grey[850],
+                child: const Icon(Icons.music_note, size: 80, color: Colors.white54),
+              ),
             ),
           ),
           const SizedBox(height: 20),
 
-          // Title & Artist Metadata
+          // Metadata
           Text(
             currentTrack.title,
             textAlign: TextAlign.center,
             maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
           ),
           const SizedBox(height: 6),
@@ -119,21 +126,18 @@ class _PlayerSheetState extends State<PlayerSheet> {
           ),
           const SizedBox(height: 20),
 
-          // Player Controls
+          // Controls
           _isLoading
               ? const CircularProgressIndicator(color: Colors.amber)
               : Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Skip Previous
                     IconButton(
                       iconSize: 40,
                       icon: const Icon(Icons.skip_previous, color: Colors.white),
                       onPressed: _audioPlayer.hasPrevious ? () => _audioPlayer.seekToPrevious() : null,
                     ),
                     const SizedBox(width: 16),
-
-                    // Play/Pause Controller
                     StreamBuilder<PlayerState>(
                       stream: _audioPlayer.playerStateStream,
                       builder: (context, snapshot) {
@@ -156,8 +160,6 @@ class _PlayerSheetState extends State<PlayerSheet> {
                       },
                     ),
                     const SizedBox(width: 16),
-
-                    // Skip Next
                     IconButton(
                       iconSize: 40,
                       icon: const Icon(Icons.skip_next, color: Colors.white),
