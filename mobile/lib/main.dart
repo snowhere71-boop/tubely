@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio_background/just_audio_background.dart';
-import 'screens/home_screen.dart'; // Adjust path if your home screen file name differs
+
+// Import your existing home screen file
+import 'screens/home_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
   await JustAudioBackground.init(
-    androidNotificationChannelId: 'com.auramusic.audio',
-    androidNotificationChannelName: 'Aura Music Playback',
+    androidNotificationChannelId: 'com.tubely.audio',
+    androidNotificationChannelName: 'Tubely Audio Playback',
     androidNotificationOngoing: true,
   );
+
   runApp(const MyApp());
 }
 
@@ -18,9 +22,15 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Aura Music',
+      title: 'Tubely',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark(),
+      theme: ThemeData.dark().copyWith(
+        scaffoldBackgroundColor: const Color(0xFF121212),
+        colorScheme: const ColorScheme.dark(
+          primary: Colors.amber,
+          secondary: Colors.amberAccent,
+        ),
+      ),
       home: const HomeScreen(),
     );
   }
