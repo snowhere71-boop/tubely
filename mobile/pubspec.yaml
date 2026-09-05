@@ -12,7 +12,6 @@ dependencies:
   http: ^1.2.0
   youtube_explode_dart: ^2.2.1
   just_audio: ^0.9.38
-  audio_service: ^0.18.12
 
 dev_dependencies:
   flutter_test:
