@@ -1,4 +1,3 @@
 class Config {
-  // Put your exact Render app URL here
-  static const String baseUrl = 'https://your-app-name.onrender.com'; 
+  static const String baseUrl = 'https://tubely-6816.onrender.com';
 }
