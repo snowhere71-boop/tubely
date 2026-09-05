@@ -1,54 +1,170 @@
 import 'package:flutter/material.dart';
-import 'package:youtube_player_iframe/youtube_player_iframe.dart';
+import 'package:just_audio/just_audio.dart';
+import 'package:just_audio_background/just_audio_background.dart';
+import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 import '../models/video.dart';
 
 class PlayerSheet extends StatefulWidget {
   final Video video;
+  final List<Video> queue;
+  final int initialIndex;
 
-  const PlayerSheet({super.key, required this.video});
+  const PlayerSheet({
+    super.key,
+    required this.video,
+    this.queue = const [],
+    this.initialIndex = 0,
+  });
 
   @override
   State<PlayerSheet> createState() => _PlayerSheetState();
 }
 
 class _PlayerSheetState extends State<PlayerSheet> {
-  late YoutubePlayerController _controller;
+  late AudioPlayer _audioPlayer;
+  final YoutubeExplode _yt = YoutubeExplode();
+  final ConcatenatingAudioSource _playlist = ConcatenatingAudioSource(children: []);
+  
+  bool _isLoading = true;
+  int _currentIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    _controller = YoutubePlayerController.fromVideoId(
-      videoId: widget.video.videoId,
-      autoPlay: true,
-      params: const YoutubePlayerParams(
-        showControls: true,
-        showFullscreenButton: true,
-      ),
-    );
+    _audioPlayer = AudioPlayer();
+    _currentIndex = widget.initialIndex;
+    _setupQueueAndPlay();
+  }
+
+  Future<void> _setupQueueAndPlay() async {
+    try {
+      List<Video> trackQueue = widget.queue.isNotEmpty ? widget.queue : [widget.video];
+
+      for (var track in trackQueue) {
+        var manifest = await _yt.videos.streamsClient.getManifest(track.videoId);
+        var audioStream = manifest.audioOnly.withHighestBitrate();
+
+        final mediaItem = MediaItem(
+          id: track.videoId,
+          album: "Aura Music Stream",
+          title: track.title,
+          artist: track.channelTitle,
+          artUri: Uri.parse(track.thumbnailUrl),
+        );
+
+        await _playlist.add(
+          AudioSource.uri(audioStream.url, tag: mediaItem),
+        );
+      }
+
+      await _audioPlayer.setAudioSource(_playlist, initialIndex: _currentIndex);
+      _audioPlayer.play();
+
+      _audioPlayer.currentIndexStream.listen((index) {
+        if (index != null && mounted) {
+          setState(() => _currentIndex = index);
+        }
+      });
+    } catch (e) {
+      debugPrint("Error initializing playback queue: $e");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
   void dispose() {
-    _controller.close();
+    _audioPlayer.dispose();
+    _yt.close();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    List<Video> activeList = widget.queue.isNotEmpty ? widget.queue : [widget.video];
+    Video currentTrack = activeList[_currentIndex];
+
     return Container(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(24.0),
+      decoration: const BoxDecoration(
+        color: Color(0xFF121212),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          YoutubePlayer(
-            controller: _controller,
-            aspectRatio: 16 / 9,
+          // High-Res Album Art
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Image.network(
+              currentTrack.thumbnailUrl,
+              height: 240,
+              width: 240,
+              fit: BoxFit.cover,
+            ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 20),
+
+          // Title & Artist Metadata
           Text(
-            widget.video.title,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            currentTrack.title,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
           ),
+          const SizedBox(height: 6),
+          Text(
+            currentTrack.channelTitle,
+            style: const TextStyle(color: Colors.grey, fontSize: 14),
+          ),
+          const SizedBox(height: 20),
+
+          // Player Controls
+          _isLoading
+              ? const CircularProgressIndicator(color: Colors.amber)
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Skip Previous
+                    IconButton(
+                      iconSize: 40,
+                      icon: const Icon(Icons.skip_previous, color: Colors.white),
+                      onPressed: _audioPlayer.hasPrevious ? () => _audioPlayer.seekToPrevious() : null,
+                    ),
+                    const SizedBox(width: 16),
+
+                    // Play/Pause Controller
+                    StreamBuilder<PlayerState>(
+                      stream: _audioPlayer.playerStateStream,
+                      builder: (context, snapshot) {
+                        final playerState = snapshot.data;
+                        final playing = playerState?.playing ?? false;
+                        return IconButton(
+                          iconSize: 64,
+                          icon: Icon(
+                            playing ? Icons.pause_circle_filled : Icons.play_circle_fill,
+                            color: Colors.amber,
+                          ),
+                          onPressed: () {
+                            if (playing) {
+                              _audioPlayer.pause();
+                            } else {
+                              _audioPlayer.play();
+                            }
+                          },
+                        );
+                      },
+                    ),
+                    const SizedBox(width: 16),
+
+                    // Skip Next
+                    IconButton(
+                      iconSize: 40,
+                      icon: const Icon(Icons.skip_next, color: Colors.white),
+                      onPressed: _audioPlayer.hasNext ? () => _audioPlayer.seekToNext() : null,
+                    ),
+                  ],
+                ),
         ],
       ),
     );
