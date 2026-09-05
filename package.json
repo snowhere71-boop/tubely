@@ -1,0 +1,14 @@
+{
+  "name": "tubely",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Search YouTube, play videos through the official embed, and save a personal playlist.",
+  "scripts": {
+    "install:all": "npm install --prefix backend && npm install --prefix frontend",
+    "dev": "concurrently -n backend,frontend -c blue,green \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
+    "build": "npm run build --prefix frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

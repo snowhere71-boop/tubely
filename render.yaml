@@ -1,0 +1,15 @@
+# Render "Blueprint" config — an optional shortcut for one-step setup.
+# You can just as easily skip this file and create the web service by hand
+# in the Render dashboard (see README) — that path doesn't depend on this
+# file's syntax matching Render's current schema, which does shift over time.
+services:
+  - type: web
+    name: tubely-backend
+    env: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: YOUTUBE_API_KEY
+        sync: false
